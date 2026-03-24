@@ -1,0 +1,8 @@
+val adapter = ExpenseAdapter(emptyList())
+recyclerView.adapter = adapter
+recyclerView.layoutManager = LinearLayoutManager(this)
+
+viewModel.allExpenses.observe(this) { expenses ->
+    // Every time RoomDB updates, the UI refreshes automatically
+    adapter.updateData(expenses)
+}

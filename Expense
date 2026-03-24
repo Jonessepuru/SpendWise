@@ -1,0 +1,40 @@
+class ExpenseAdapter(private var expenses: List<Expense>) : 
+    RecyclerView.Adapter<ExpenseAdapter.ExpenseViewHolder>() {
+
+    class ExpenseViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        val ivReceipt: ImageView = view.findViewById(R.id.ivReceiptThumbnail)
+        val tvCategory: TextView = view.findViewById(R.id.tvCategory)
+        val tvAmount: TextView = view.findViewById(R.id.tvAmount)
+        val tvDate: TextView = view.findViewById(R.id.tvDate)
+    }
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ExpenseViewHolder {
+        val view = LayoutInflater.from(parent.context)
+            .inflate(R.layout.item_expense, parent, false)
+        return ExpenseViewHolder(view)
+    }
+
+    override fun onBindViewHolder(holder: ExpenseViewHolder, position: Int) {
+        val expense = expenses[position]
+        holder.tvCategory.text = expense.category
+        holder.tvAmount.text = "R ${String.format("%.2f", expense.amount)}"
+        
+        // Format timestamp to readable date
+        val sdf = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
+        holder.tvDate.text = sdf.format(Date(expense.date))
+
+        // Load the CameraX image path using a library like Glide or basic URI
+        if (expense.imagePath != null) {
+            holder.ivReceipt.setImageURI(Uri.parse(expense.imagePath))
+        } else {
+            holder.ivReceipt.setImageResource(R.drawable.ic_receipt_placeholder)
+        }
+    }
+
+    override fun getItemCount() = expenses.size
+
+    fun updateData(newExpenses: List<Expense>) {
+        this.expenses = newExpenses
+        notifyDataSetChanged()
+    }
+}

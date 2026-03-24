@@ -1,0 +1,27 @@
+class ExpenseRepository(private val expenseDao: ExpenseDao) {
+    val allExpenses = expenseDao.getAllExpenses()
+    val totalSpent = expenseDao.getTotalSpent()
+
+    suspend fun addExpense(expense: Expense) {
+        expenseDao.insert(expense)
+    }
+}
+
+class SpendViewModel(application: Application) : AndroidViewModel(application) {
+    private val repository: ExpenseRepository
+    val allExpenses: LiveData<List<Expense>>
+    val totalSpent: LiveData<Double>
+
+    init {
+        val dao = SpendWiseDatabase.getDatabase(application).expenseDao()
+        repository = ExpenseRepository(dao)
+        allExpenses = repository.allExpenses
+        totalSpent = repository.totalSpent
+    }
+
+    fun saveExpense(amount: Double, category: String, path: String?) {
+        viewModelScope.launch {
+            repository.addExpense(Expense(amount = amount, category = category, imagePath = path))
+        }
+    }
+}
