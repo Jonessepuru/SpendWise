@@ -1,0 +1,5 @@
+package com.spendwise.prototype.data
+import android.content.Context; import androidx.room.*; import androidx.sqlite.db.SupportSQLiteDatabase; import kotlinx.coroutines.*
+@Database(entities=[User::class,Category::class,Expense::class,BudgetGoal::class],version=1) abstract class AppDatabase:RoomDatabase(){
+abstract fun userDao():UserDao; abstract fun categoryDao():CategoryDao; abstract fun expenseDao():ExpenseDao; abstract fun goalDao():GoalDao
+companion object{ @Volatile private var INSTANCE:AppDatabase?=null; fun get(context:Context)=INSTANCE?:synchronized(this){ Room.databaseBuilder(context,AppDatabase::class.java,"spendwise.db").addCallback(object:Callback(){ override fun onCreate(db:SupportSQLiteDatabase){ super.onCreate(db); INSTANCE?.let{ d-> CoroutineScope(Dispatchers.IO).launch{ val dao=d.categoryDao(); listOf("Food","Transport","Entertainment","Airtime/Data","Tuition","Other").forEach{ dao.insert(Category(name=it)) } } } } }).fallbackToDestructiveMigration().build().also{INSTANCE=it} } } }
