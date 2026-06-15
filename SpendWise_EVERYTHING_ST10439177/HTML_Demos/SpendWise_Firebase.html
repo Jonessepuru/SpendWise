@@ -1,0 +1,1070 @@
+<!DOCTYPE html>
+<html lang="en-ZA">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>SpendWise - Part 3 Firebase</title>
+<style>
+:root {
+  --primary: #00695C;
+  --primary-container: #B2DFDB;
+  --on-primary: #FFFFFF;
+  --surface: #FFFFFF;
+  --surface-variant: #F5F5F5;
+  --outline: #79747E;
+  --error: #B3261E;
+  --success: #2E7D32;
+  --food: #00695C;
+  --transport: #00897B;
+  --airtime: #26A69A;
+  --entertainment: #4DB6AC;
+  --tuition: #004D40;
+  --other: #80CBC4;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; }
+body {
+  font-family: 'Roboto', system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+  background: #E0E0E0;
+  color: #1C1B1F;
+  display: flex;
+  justify-content: center;
+  line-height: 1.5;
+}
+.app {
+  width: 100%;
+  max-width: 420px;
+  background: var(--surface);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  box-shadow: 0 0 30px rgba(0,0,0,0.12);
+}
+.hidden { display: none !important; }
+
+/* LOGIN */
+#login-screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+}
+.login-hero {
+  background: var(--primary);
+  color: var(--on-primary);
+  padding: 64px 24px 48px;
+  text-align: center;
+  border-radius: 0 0 32px 32px;
+}
+.login-hero .logo {
+  width: 72px;
+  height: 72px;
+  background: rgba(255,255,255,0.2);
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  backdrop-filter: blur(10px);
+}
+.login-hero h1 { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
+.login-hero p { opacity: 0.9; font-size: 14px; }
+.login-form-wrap { padding: 32px 24px; flex: 1; }
+.firebase-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #FFF8E1;
+  color: #E65100;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  margin-bottom: 24px;
+  border: 1px solid #FFE0B2;
+}
+.field { margin-bottom: 20px; }
+.field label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #49454F;
+  margin-bottom: 8px;
+}
+.field input, .field select {
+  width: 100%;
+  padding: 16px;
+  border: 1.5px solid #CAC4D0;
+  border-radius: 12px;
+  font-size: 16px;
+  background: var(--surface);
+  transition: all 0.2s;
+  outline: none;
+}
+.field input:focus, .field select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(0,105,92,0.12);
+}
+.amount-field { position: relative; }
+.amount-field .prefix {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #49454F;
+  font-weight: 600;
+  font-size: 16px;
+}
+.amount-field input { padding-left: 36px; }
+.btn-primary {
+  width: 100%;
+  background: var(--primary);
+  color: var(--on-primary);
+  border: none;
+  padding: 16px;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 6px rgba(0,105,92,0.3);
+}
+.btn-primary:active { transform: scale(0.98); }
+.btn-primary:disabled { opacity: 0.6; }
+.login-hint {
+  text-align: center;
+  margin-top: 24px;
+  font-size: 13px;
+  color: #79747E;
+  background: var(--surface-variant);
+  padding: 12px;
+  border-radius: 12px;
+}
+.error-msg {
+  color: var(--error);
+  font-size: 13px;
+  margin-top: 8px;
+  display: none;
+}
+.error-msg.show { display: block; }
+
+/* APP */
+.top-bar {
+  background: var(--primary);
+  color: var(--on-primary);
+  padding: 16px 20px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.top-bar h1 { font-size: 22px; font-weight: 600; }
+.sync-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  background: rgba(255,255,255,0.2);
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+.sync-dot {
+  width: 8px; height: 8px; background: #69F0AE; border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+main {
+  flex: 1;
+  overflow-y: auto;
+  background: #FAFAFA;
+  padding-bottom: 90px;
+}
+.tab { padding: 20px; display: none; }
+.tab.active { display: block; animation: fadeIn 0.3s; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+.card {
+  background: var(--surface);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+.card h2 { font-size: 18px; margin-bottom: 16px; color: #1C1B1F; }
+.card h3 { font-size: 16px; margin-bottom: 12px; color: #49454F; font-weight: 600; }
+
+/* ADD TAB */
+.add-grid { display: grid; gap: 16px; }
+.category-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 8px;
+}
+.cat-chip {
+  padding: 12px 8px;
+  border: 1.5px solid #E0E0E0;
+  border-radius: 12px;
+  text-align: center;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: white;
+}
+.cat-chip.active {
+  background: var(--primary-container);
+  border-color: var(--primary);
+  color: var(--primary);
+  font-weight: 600;
+}
+
+/* EXPENSES */
+.expenses-toolbar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.search-box {
+  flex: 1;
+  position: relative;
+}
+.search-box input {
+  width: 100%;
+  padding: 12px 16px 12px 40px;
+  border: 1.5px solid #E0E0E0;
+  border-radius: 12px;
+  font-size: 14px;
+  background: white;
+}
+.search-box svg {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #79747E;
+}
+.filter-select {
+  padding: 12px;
+  border: 1.5px solid #E0E0E0;
+  border-radius: 12px;
+  background: white;
+  font-size: 14px;
+  min-width: 110px;
+}
+.export-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 16px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  margin-bottom: 16px;
+}
+.expense-list { display: flex; flex-direction: column; gap: 12px; }
+.expense-item {
+  background: white;
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+  transition: transform 0.15s;
+}
+.expense-item:active { transform: scale(0.99); }
+.expense-icon {
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  flex-shrink: 0;
+}
+.expense-details { flex: 1; min-width: 0; }
+.expense-desc { font-weight: 500; font-size: 15px; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.expense-meta { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #79747E; }
+.cat-badge {
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: white;
+}
+.expense-amount {
+  font-weight: 700;
+  font-size: 16px;
+  color: #1C1B1F;
+  text-align: right;
+}
+.expense-date { font-size: 11px; color: #9E9E9E; margin-top: 2px; }
+.empty-state {
+  text-align: center;
+  padding: 48px 24px;
+  color: #79747E;
+}
+.empty-state svg { opacity: 0.3; margin-bottom: 12px; }
+
+/* CHARTS */
+.total-amount {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--primary);
+  margin: 8px 0;
+}
+.total-sub { font-size: 13px; color: #79747E; }
+.pie-wrap {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  margin-top: 16px;
+}
+#pieChart { flex-shrink: 0; }
+.pie-legend { flex: 1; }
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+.legend-dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+.legend-label { flex: 1; }
+.legend-value { font-weight: 600; }
+.bar-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  height: 160px;
+  margin-top: 20px;
+  padding: 0 4px;
+  border-bottom: 2px solid #E0E0E0;
+}
+.bar-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.bar {
+  width: 100%;
+  max-width: 40px;
+  background: linear-gradient(180deg, var(--primary) 0%, #004D40 100%);
+  border-radius: 8px 8px 0 0;
+  min-height: 4px;
+  transition: height 0.6s ease;
+  position: relative;
+}
+.bar-value {
+  position: absolute;
+  top: -22px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--primary);
+  white-space: nowrap;
+}
+.bar-label { font-size: 11px; color: #79747E; margin-top: 4px; }
+
+/* PROFILE */
+.profile-header {
+  text-align: center;
+  padding: 24px 0;
+}
+.avatar {
+  width: 80px; height: 80px;
+  background: linear-gradient(135deg, var(--primary), #004D40);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 28px;
+  font-weight: 600;
+  margin: 0 auto 16px;
+  box-shadow: 0 4px 12px rgba(0,105,92,0.3);
+}
+.profile-name { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+.profile-id { color: #79747E; font-size: 14px; }
+.info-list { margin: 24px 0; }
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 0;
+  border-bottom: 1px solid #F0F0F0;
+}
+.info-row:last-child { border-bottom: none; }
+.info-label { font-size: 14px; color: #79747E; }
+.info-value { font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 6px; }
+.info-value.active { color: var(--success); }
+.info-value.active::before {
+  content: '';
+  width: 8px; height: 8px;
+  background: var(--success);
+  border-radius: 50%;
+  display: inline-block;
+}
+.logout-btn {
+  width: 100%;
+  padding: 14px;
+  background: #FFF;
+  color: var(--error);
+  border: 1.5px solid #F5C0BD;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 16px;
+}
+
+/* BOTTOM NAV */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 420px;
+  background: var(--surface);
+  border-top: 1px solid #E0E0E0;
+  display: flex;
+  padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
+  z-index: 20;
+}
+.nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px;
+  background: none;
+  border: none;
+  color: #79747E;
+  cursor: pointer;
+  transition: color 0.2s;
+  font-size: 12px;
+  font-weight: 500;
+}
+.nav-item svg { width: 24px; height: 24px; }
+.nav-item.active { color: var(--primary); }
+.nav-item.active svg { fill: var(--primary-container); stroke: var(--primary); }
+
+/* TOAST */
+#toast {
+  position: fixed;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: #323232;
+  color: white;
+  padding: 14px 20px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  opacity: 0;
+  transition: all 0.3s cubic-bezier(0.2, 0, 0, 1);
+  z-index: 100;
+  max-width: 90%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+#toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+#toast svg { flex-shrink: 0; }
+
+/* FOOTER */
+.app-footer {
+  text-align: center;
+  padding: 16px;
+  font-size: 12px;
+  color: #9E9E9E;
+  background: #FAFAFA;
+  border-top: 1px solid #EEEEEE;
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- LOGIN SCREEN -->
+  <div id="login-screen">
+    <div class="login-hero">
+      <div class="logo">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+          <path d="M12 2v20M2 12h20"/>
+          <circle cx="12" cy="12" r="9"/>
+        </svg>
+      </div>
+      <h1>SpendWise</h1>
+      <p>OPSC6311 Part 3 - Firebase Edition</p>
+    </div>
+    <div class="login-form-wrap">
+      <div class="firebase-badge">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="#E65100"><path d="M12 2.5l9.5 7.5-2 12.5H4.5L2.5 10 12 2.5z"/></svg>
+        Firebase Authentication
+      </div>
+      <form id="login-form">
+        <div class="field">
+          <label for="email">Email</label>
+          <input type="email" id="email" autocomplete="email" required value="student@mycput.ac.za" placeholder="student@mycput.ac.za">
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input type="password" id="password" autocomplete="current-password" required value="demo123" placeholder="••••••••">
+        </div>
+        <div class="error-msg" id="login-error">Invalid credentials. Use demo account.</div>
+        <button type="submit" class="btn-primary" id="login-btn">Sign in with Firebase</button>
+      </form>
+      <div class="login-hint">
+        Demo: <strong>student@mycput.ac.za</strong> / <strong>demo123</strong>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN APP -->
+  <div id="app-screen" class="hidden">
+    <header class="top-bar">
+      <h1>SpendWise</h1>
+      <div class="sync-status">
+        <span class="sync-dot"></span>
+        <span>Firestore</span>
+      </div>
+    </header>
+
+    <main>
+      <!-- ADD TAB -->
+      <section id="tab-add" class="tab active">
+        <div class="card">
+          <h2>Add Expense</h2>
+          <div class="add-grid">
+            <div class="field">
+              <label>Description</label>
+              <input type="text" id="desc" placeholder="e.g. Pick n Pay Groceries" required>
+            </div>
+            <div class="field">
+              <label>Amount</label>
+              <div class="amount-field">
+                <span class="prefix">R</span>
+                <input type="number" id="amount" step="0.01" min="0" placeholder="0.00" required>
+              </div>
+            </div>
+            <div class="field">
+              <label>Category</label>
+              <div class="category-grid" id="category-grid">
+                <button type="button" class="cat-chip active" data-cat="Food">Food</button>
+                <button type="button" class="cat-chip" data-cat="Transport">Transport</button>
+                <button type="button" class="cat-chip" data-cat="Airtime/Data">Airtime/Data</button>
+                <button type="button" class="cat-chip" data-cat="Entertainment">Entertainment</button>
+                <button type="button" class="cat-chip" data-cat="Tuition">Tuition</button>
+                <button type="button" class="cat-chip" data-cat="Other">Other</button>
+              </div>
+            </div>
+            <div class="field">
+              <label>Date</label>
+              <input type="date" id="date">
+            </div>
+            <button class="btn-primary" id="save-btn">
+              <span style="display:flex;align-items:center;justify-content:center;gap:8px">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                Save to Cloud Firestore
+              </span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- EXPENSES TAB -->
+      <section id="tab-expenses" class="tab">
+        <div class="expenses-toolbar">
+          <div class="search-box">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <input type="text" id="search" placeholder="Search expenses...">
+          </div>
+          <select class="filter-select" id="filter-category">
+            <option value="All">All</option>
+            <option>Food</option>
+            <option>Transport</option>
+            <option>Airtime/Data</option>
+            <option>Entertainment</option>
+            <option>Tuition</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <button class="export-btn" id="export-btn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export CSV
+        </button>
+        <div class="expense-list" id="expense-list"></div>
+        <div class="empty-state hidden" id="empty-state">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M8 15s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+          <p>No expenses found</p>
+        </div>
+      </section>
+
+      <!-- CHARTS TAB -->
+      <section id="tab-charts" class="tab">
+        <div class="card">
+          <h3>Total Spent</h3>
+          <div class="total-amount" id="total-spent">R 0.00</div>
+          <div class="total-sub" id="expense-count">0 transactions • South African Rand</div>
+        </div>
+        
+        <div class="card">
+          <h3>Spending by Category</h3>
+          <div class="pie-wrap">
+            <canvas id="pieChart" width="180" height="180"></canvas>
+            <div class="pie-legend" id="pie-legend"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Monthly Trend</h3>
+          <div class="bar-chart" id="bar-chart"></div>
+        </div>
+      </section>
+
+      <!-- PROFILE TAB -->
+      <section id="tab-profile" class="tab">
+        <div class="card">
+          <div class="profile-header">
+            <div class="avatar">MJ</div>
+            <div class="profile-name">Matjentje Jonas Sepuru</div>
+            <div class="profile-id">Student: ST10439177</div>
+          </div>
+        </div>
+        
+        <div class="card">
+          <div class="info-list">
+            <div class="info-row">
+              <span class="info-label">Email</span>
+              <span class="info-value">student@mycput.ac.za</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Firebase UID</span>
+              <span class="info-value" id="uid-display" style="font-family: monospace; font-size: 12px;">-</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Provider</span>
+              <span class="info-value">Firebase Auth</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Cloud sync</span>
+              <span class="info-value active">Active</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Local cache</span>
+              <span class="info-value">Firestore Lite</span>
+            </div>
+          <button class="logout-btn" id="logout-btn">Sign Out</button>
+        </div>
+      </section>
+    </main>
+
+    <nav class="bottom-nav">
+      <button class="nav-item active" data-tab="add">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
+        <span>Add</span>
+      </button>
+      <button class="nav-item" data-tab="expenses">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+        <span>Expenses</span>
+      </button>
+      <button class="nav-item" data-tab="charts">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+        <span>Charts</span>
+      </button>
+      <button class="nav-item" data-tab="profile">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span>Profile</span>
+      </button>
+    </nav>
+
+    <div class="app-footer">OPSC6311 Part 3 - Firebase Edition</div>
+  </div>
+</div>
+
+<div id="toast">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+  <span id="toast-msg">Saved to Cloud Firestore</span>
+</div>
+
+<script>
+(() => {
+  const $ = s => document.querySelector(s);
+  const $$ = s => document.querySelectorAll(s);
+  
+  const COLORS = {
+    'Food': '#00695C',
+    'Transport': '#00897B',
+    'Airtime/Data': '#26A69A',
+    'Entertainment': '#4DB6AC',
+    'Tuition': '#004D40',
+    'Other': '#80CBC4'
+  };
+  
+  const AUTH_KEY = 'spendwise_part3_auth';
+  const DATA_KEY = 'spendwise_part3_expenses';
+  
+  let currentCategory = 'Food';
+  let expenses = [];
+  
+  // Utils
+  const formatZAR = (amount) => 'R ' + Number(amount).toLocaleString('en-ZA', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  const formatDate = (dateStr) => {
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('en-ZA', {day: '2-digit', month: 'short', year: 'numeric'});
+  };
+  const showToast = (msg) => {
+    $('#toast-msg').textContent = msg;
+    $('#toast').classList.add('show');
+    setTimeout(() => $('#toast').classList.remove('show'), 2500);
+  };
+  
+  // Seed data
+  function createSeedData() {
+    const now = new Date();
+    const daysAgo = [3, 8, 12, 18, 25, 31, 45, 62];
+    const seed = [
+      { description: 'Pick n Pay Groceries', amount: 450.50, category: 'Food' },
+      { description: 'Taxi fare', amount: 45.00, category: 'Transport' },
+      { description: 'MTN Data 5GB', amount: 299.00, category: 'Airtime/Data' },
+      { description: 'KFC', amount: 89.90, category: 'Food' },
+      { description: 'Uber', amount: 120.00, category: 'Transport' },
+      { description: 'Netflix', amount: 199.00, category: 'Entertainment' },
+      { description: 'Tuition fee', amount: 2500.00, category: 'Tuition' },
+      { description: 'Cell C airtime', amount: 50.00, category: 'Airtime/Data' }
+    ];
+    
+    return seed.map((item, i) => {
+      const d = new Date(now);
+      d.setDate(d.getDate() - daysAgo[i]);
+      return {
+        id: 'exp_' + Math.random().toString(36).substr(2, 9),
+        ...item,
+        date: d.toISOString().split('T')[0],
+        timestamp: d.getTime(),
+        uid: 'demo_user'
+      };
+    });
+  }
+  
+  // Init
+  function init() {
+    const auth = localStorage.getItem(AUTH_KEY);
+    if (auth) {
+      showApp(JSON.parse(auth));
+    }
+    
+    $('#date').valueAsDate = new Date();
+    
+    // Categories
+    $$('#category-grid .cat-chip').forEach(btn => {
+      btn.addEventListener('click', () => {
+        $$('#category-grid .cat-chip').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentCategory = btn.dataset.cat;
+      });
+    });
+    
+    // Login
+    $('#login-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const email = $('#email').value.trim().toLowerCase();
+      const pass = $('#password').value;
+      
+      if (email === 'student@mycput.ac.za' && pass === 'demo123') {
+        const user = {
+          email,
+          name: 'Matjentje Jonas Sepuru',
+          student: 'ST10439177',
+          uid: 'FB_' + Math.random().toString(36).substr(2, 16),
+          loginAt: Date.now()
+        };
+        localStorage.setItem(AUTH_KEY, JSON.stringify(user));
+        $('#login-error').classList.remove('show');
+        showApp(user);
+        showToast('Firebase Auth: Signed in');
+      } else {
+        $('#login-error').classList.add('show');
+      }
+    });
+    
+    // Save expense
+    $('#save-btn').addEventListener('click', () => {
+      const desc = $('#desc').value.trim();
+      const amount = parseFloat($('#amount').value);
+      const date = $('#date').value;
+      
+      if (!desc || !amount || amount <= 0 || !date) {
+        showToast('Please fill all fields');
+        return;
+      }
+      
+      const expense = {
+        id: 'exp_' + Date.now(),
+        description: desc,
+        amount,
+        category: currentCategory,
+        date,
+        timestamp: new Date(date).getTime(),
+        uid: JSON.parse(localStorage.getItem(AUTH_KEY)).uid
+      };
+      
+      expenses.unshift(expense);
+      localStorage.setItem(DATA_KEY, JSON.stringify(expenses));
+      
+      // Reset form
+      $('#desc').value = '';
+      $('#amount').value = '';
+      $('#date').valueAsDate = new Date();
+      
+      showToast('Saved to Cloud Firestore');
+      renderExpenses();
+      updateCharts();
+      
+      // Switch to expenses
+      switchTab('expenses');
+    });
+    
+    // Search & filter
+    $('#search').addEventListener('input', renderExpenses);
+    $('#filter-category').addEventListener('change', renderExpenses);
+    
+    // Export
+    $('#export-btn').addEventListener('click', exportCSV);
+    
+    // Nav
+    $$('.nav-item').forEach(btn => {
+      btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+    });
+    
+    // Logout
+    $('#logout-btn').addEventListener('click', () => {
+      localStorage.removeItem(AUTH_KEY);
+      $('#app-screen').classList.add('hidden');
+      $('#login-screen').classList.remove('hidden');
+      showToast('Signed out');
+    });
+  }
+  
+  function showApp(user) {
+    $('#login-screen').classList.add('hidden');
+    $('#app-screen').classList.remove('hidden');
+    $('#uid-display').textContent = user.uid;
+    
+    // Load data
+    const stored = localStorage.getItem(DATA_KEY);
+    if (stored) {
+      expenses = JSON.parse(stored);
+    } else {
+      expenses = createSeedData();
+      localStorage.setItem(DATA_KEY, JSON.stringify(expenses));
+    }
+    
+    renderExpenses();
+    updateCharts();
+  }
+  
+  function switchTab(tab) {
+    $$('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+    $$('.tab').forEach(t => t.classList.toggle('active', t.id === 'tab-' + tab));
+    
+    if (tab === 'charts') {
+      setTimeout(updateCharts, 50);
+    }
+  }
+  
+  function renderExpenses() {
+    const search = $('#search').value.toLowerCase();
+    const filter = $('#filter-category').value;
+    
+    let filtered = expenses.filter(e => {
+      const matchesSearch = e.description.toLowerCase().includes(search) || e.category.toLowerCase().includes(search);
+      const matchesFilter = filter === 'All' || e.category === filter;
+      return matchesSearch && matchesFilter;
+    });
+    
+    const list = $('#expense-list');
+    list.innerHTML = '';
+    
+    if (filtered.length === 0) {
+      $('#empty-state').classList.remove('hidden');
+      return;
+    }
+    $('#empty-state').classList.add('hidden');
+    
+    filtered.sort((a, b) => b.timestamp - a.timestamp).forEach(exp => {
+      const item = document.createElement('div');
+      item.className = 'expense-item';
+      item.innerHTML = `
+        <div class="expense-icon" style="background:${COLORS[exp.category]}">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+            ${exp.category === 'Food' ? '<path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/>' :
+              exp.category === 'Transport' ? '<circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M5 17H3v-4h13l2-7h3"/>' :
+              exp.category === 'Airtime/Data' ? '<rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/>' :
+              exp.category === 'Entertainment' ? '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>' :
+              exp.category === 'Tuition' ? '<path d="M4 19.5A2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 0 0 1 4 19.5v-15A2.5 0 0 1 6.5 2z"/>' :
+              '<circle cx="12" cy="12" r="10"/>'}
+          </svg>
+        </div>
+        <div class="expense-details">
+          <div class="expense-desc">${exp.description}</div>
+          <div class="expense-meta">
+            <span class="cat-badge" style="background:${COLORS[exp.category]}">${exp.category}</span>
+            <span>${formatDate(exp.date)}</span>
+          </div>
+        <div style="text-align:right">
+          <div class="expense-amount">${formatZAR(exp.amount)}</div>
+          <div class="expense-date">Firestore</div>
+        </div>
+      `;
+      list.appendChild(item);
+    });
+  }
+  
+  function updateCharts() {
+    // Total
+    const total = expenses.reduce((sum, e) => sum + e.amount, 0);
+    $('#total-spent').textContent = formatZAR(total);
+    $('#expense-count').textContent = `${expenses.length} transactions • South African Rand`;
+    
+    // Pie chart
+    const canvas = $('#pieChart');
+    const ctx = canvas.getContext('2d');
+    const size = 180;
+    canvas.width = size * 2;
+    canvas.height = size * 2;
+    canvas.style.width = size + 'px';
+    canvas.style.height = size + 'px';
+    ctx.scale(2, 2);
+    
+    ctx.clearRect(0, 0, size, size);
+    
+    const totals = {};
+    Object.keys(COLORS).forEach(cat => totals[cat] = 0);
+    expenses.forEach(e => totals[e.category] = (totals[e.category] || 0) + e.amount);
+    
+    const data = Object.entries(totals).filter(([_, v]) => v > 0).map(([k, v]) => ({label: k, value: v, color: COLORS[k]}));
+    const totalValue = data.reduce((s, d) => s + d.value, 0);
+    
+    if (totalValue === 0) {
+      ctx.beginPath();
+      ctx.arc(size/2, size/2, 70, 0, Math.PI * 2);
+      ctx.fillStyle = '#E0E0E0';
+      ctx.fill();
+    } else {
+      let startAngle = -Math.PI / 2;
+      data.forEach(segment => {
+        const sliceAngle = (segment.value / totalValue) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.moveTo(size/2, size/2);
+        ctx.arc(size/2, size/2, 70, startAngle, startAngle + sliceAngle);
+        ctx.closePath();
+        ctx.fillStyle = segment.color;
+        ctx.fill();
+        startAngle += sliceAngle;
+      });
+      // center hole
+      ctx.beginPath();
+      ctx.arc(size/2, size/2, 40, 0, Math.PI * 2);
+      ctx.fillStyle = 'white';
+      ctx.fill();
+    }
+    
+    // Legend
+    const legend = $('#pie-legend');
+    legend.innerHTML = '';
+    data.sort((a, b) => b.value - a.value).forEach(item => {
+      const pct = totalValue ? Math.round((item.value / totalValue) * 100) : 0;
+      const div = document.createElement('div');
+      div.className = 'legend-item';
+      div.innerHTML = `
+        <span class="legend-dot" style="background:${item.color}"></span>
+        <span class="legend-label">${item.label}</span>
+        <span class="legend-value">${formatZAR(item.value)} <span style="color:#9E9E9E;font-weight:400">(${pct}%)</span></span>
+      `;
+      legend.appendChild(div);
+    });
+    
+    // Bar chart - last 6 months
+    const months = [];
+    const now = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push({
+        key: `${d.getFullYear()}-${d.getMonth()}`,
+        label: d.toLocaleDateString('en-ZA', {month: 'short'}),
+        total: 0
+      });
+    }
+    
+    expenses.forEach(e => {
+      const d = new Date(e.date);
+      const key = `${d.getFullYear()}-${d.getMonth()}`;
+      const month = months.find(m => m.key === key);
+      if (month) month.total += e.amount;
+    });
+    
+    const maxVal = Math.max(...months.map(m => m.total), 1);
+    const barChart = $('#bar-chart');
+    barChart.innerHTML = '';
+    
+    months.forEach(m => {
+      const height = (m.total / maxVal) * 120;
+      const col = document.createElement('div');
+      col.className = 'bar-col';
+      col.innerHTML = `
+        <div class="bar" style="height:${height}px">
+          ${m.total > 0 ? `<span class="bar-value">R${Math.round(m.total)}</span>` : ''}
+        </div>
+        <div class="bar-label">${m.label}</div>
+      `;
+      barChart.appendChild(col);
+    });
+  }
+  
+  function exportCSV() {
+    const headers = ['Description', 'Amount (ZAR)', 'Category', 'Date', 'Firebase UID'];
+    const rows = expenses.map(e => [
+      `"${e.description.replace(/"/g, '""')}"`,
+      e.amount.toFixed(2),
+      e.category,
+      e.date,
+      e.uid || ''
+    ]);
+    
+    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `spendwise_expenses_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    showToast('CSV exported from Firestore');
+  }
+  
+  // Start
+  document.addEventListener('DOMContentLoaded', init);
+})();
+</script>
+</body>
+</html>
